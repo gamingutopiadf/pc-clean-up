@@ -129,4 +129,4 @@ try {
 
 # === Final message ===
 Log "Cleanup complete."
-Write-Host "`n✅ Clean-up complete — Log output posted to Desktop\PC-Clean-Logs" -ForegroundColor Green
+Write-Host "`nClean-up complete - Log output posted to Desktop\PC-Clean-Logs" -ForegroundColor Green
