@@ -5,10 +5,13 @@ if ($response -ne 'Y' -and $response -ne 'y') {
 }
 
 # === Log setup ===
-$logDir = "D:\logs for clean-up script"
+$desktop = [Environment]::GetFolderPath("Desktop")
+$logDir = Join-Path $desktop "PC-Clean-Logs"
+
 if (-Not (Test-Path $logDir)) {
     New-Item -ItemType Directory -Path $logDir | Out-Null
 }
+
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logPath = "$logDir\startup_cleanup_$timestamp.txt"
 
@@ -21,9 +24,9 @@ Function Log($msg) {
 
 Log "===== Startup Cleanup Started ====="
 
-# Delete old logs >10 days
+# === Delete old logs > 10 days ===
 try {
-    $oldLogs = Get-ChildItem -Path $logDir -Filter "startup_cleanup_*.txt" | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-10) }
+    $oldLogs = Get-ChildItem -Path $logDir -Filter "*.txt" | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-10) }
     foreach ($log in $oldLogs) {
         Log "Deleting old log: $($log.Name)"
         Remove-Item $log.FullName -Force
@@ -35,7 +38,7 @@ try {
     Log "Error deleting old logs: $_"
 }
 
-# Disable unwanted startup items
+# === Disable unwanted startup items ===
 $appsToDisable = @(
     "BraveSoftware Update", "ChatGPT", "Copilot", "CurseForge",
     "Hamachi Client Application", "IriunWebcam",
@@ -51,21 +54,24 @@ foreach ($app in $appsToDisable) {
     }
 }
 
-# Clear TEMP files
+# === Clear TEMP files ===
 try {
-    Log "Cleaning TEMP..."
+    Log "Cleaning TEMP directories..."
     Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
 } catch {
-    Log "Error cleaning temp folders."
+    Log "Error cleaning TEMP directories: $_"
 }
 
-# Discord cache
+# === Clean Discord cache ===
 $discordPaths = @(
-    "$env:APPDATA\discord\Cache", "$env:APPDATA\discord\Code Cache",
-    "$env:APPDATA\discord\GPUCache", "$env:APPDATA\discord\Local Storage",
+    "$env:APPDATA\discord\Cache",
+    "$env:APPDATA\discord\Code Cache",
+    "$env:APPDATA\discord\GPUCache",
+    "$env:APPDATA\discord\Local Storage",
     "$env:APPDATA\discord\logs"
 )
+
 foreach ($path in $discordPaths) {
     if (Test-Path $path) {
         Log "Cleaning Discord: $path"
@@ -73,7 +79,7 @@ foreach ($path in $discordPaths) {
     }
 }
 
-# Browser cache
+# === Clean browser cache ===
 $browserPaths = @(
     "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Cache",
     "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Code Cache",
@@ -86,6 +92,7 @@ $browserPaths = @(
     "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\GPUCache",
     "$env:APPDATA\Mozilla\Firefox\Profiles"
 )
+
 foreach ($path in $browserPaths) {
     if (Test-Path $path) {
         Log "Cleaning browser cache: $path"
@@ -93,31 +100,33 @@ foreach ($path in $browserPaths) {
     }
 }
 
-# Explorer history — FIXED with -Recurse
+# === Clear Explorer history ===
 try {
     Log "Clearing Explorer recent files..."
     Remove-Item "$env:APPDATA\Microsoft\Windows\Recent\*" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item "$env:APPDATA\Microsoft\Windows\Recent Items\*" -Recurse -Force -ErrorAction SilentlyContinue
 } catch {
-    Log "Failed to clear Explorer history."
+    Log "Failed to clear Explorer history: $_"
 }
 
-# Crash dumps & logs
+# === Remove crash dumps and error logs ===
 try {
-    Log "Removing crash dumps..."
+    Log "Removing crash dumps and error logs..."
     Remove-Item "C:\ProgramData\Microsoft\Windows\WER\*" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item "C:\Users\Public\CrashDumps\*" -Recurse -Force -ErrorAction SilentlyContinue
 } catch {
-    Log "Error cleaning crash dumps."
+    Log "Error cleaning crash dumps: $_"
 }
 
-# Restart Explorer
+# === Restart Windows Explorer ===
 try {
     Log "Restarting Windows Explorer..."
     Stop-Process -Name explorer -Force
     Start-Process explorer
 } catch {
-    Log "Failed to restart Explorer."
+    Log "Failed to restart Explorer: $_"
 }
 
+# === Final message ===
 Log "Cleanup complete."
+Write-Host "`n✅ Clean-up complete — Log output posted to Desktop\PC-Clean-Logs" -ForegroundColor Green
